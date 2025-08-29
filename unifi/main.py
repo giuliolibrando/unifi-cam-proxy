@@ -5,7 +5,7 @@ import sys
 from shutil import which
 
 import coloredlogs
-from pyunifiprotect import ProtectApiClient
+from uiprotect import ProtectApiClient
 
 from unifi.cams import (
     DahuaCam,
@@ -14,6 +14,7 @@ from unifi.cams import (
     Reolink,
     ReolinkNVRCam,
     RTSPCam,
+    TapoCam,
 )
 from unifi.core import Core
 from unifi.version import __version__
@@ -27,6 +28,7 @@ CAMS = {
     "reolink": Reolink,
     "reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
+    "tapo": TapoCam,
 }
 
 
