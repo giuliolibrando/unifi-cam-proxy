@@ -31,7 +31,7 @@ optional arguments:
 ## Tapo C200/C220/C500
 
 - [x] Supports full time recording
-- [x] Supports motion events via ONVIF
+- [x] Supports motion events via ONVIF (including person detection)
 - [x] Supports HD and SD streams
 - [x] Supports ONVIF snapshots
 - Notes:
@@ -111,6 +111,17 @@ RTSP URLs format:
 rtsp://username:password@ip:554/stream1
 rtsp://username:password@ip:554/stream2
 ```
+
+### Motion Events
+
+The module supports two types of ONVIF events:
+- **Motion Detection**: General movement detection (`IsMotion`)
+- **Person Detection**: Specific person detection (`IsPeople`)
+
+When a person is detected, UniFi will receive a "Person detected" notification instead of a generic "Motion detected" notification, allowing for:
+- Smart filtering in the UniFi interface
+- Separate analytics for people vs general motion
+- Enhanced notification system
 
 ### FFmpeg Parameters
 

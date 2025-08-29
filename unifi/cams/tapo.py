@@ -308,8 +308,16 @@ class TapoCam(UnifiCamBase):
                         
                         if not self.motion_in_progress:
                             self.motion_in_progress = True
-                            self.logger.info(f"🚨 Motion detected via PullPoint: {topic} {name}={value}")
-                            await self.trigger_motion_start()
+                            
+                            # Determine event type based on ONVIF event
+                            if name == "IsPeople":
+                                # Person detected - send smart detect event
+                                self.logger.info(f"👤 Person detected via PullPoint: {topic} {name}={value}")
+                                await self.trigger_motion_start(SmartDetectObjectType.PERSON)
+                            else:
+                                # General motion detected
+                                self.logger.info(f"🚨 Motion detected via PullPoint: {topic} {name}={value}")
+                                await self.trigger_motion_start()
                         
                         # End motion event after 2 seconds of no updates
                         asyncio.ensure_future(
