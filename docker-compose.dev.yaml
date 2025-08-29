@@ -7,13 +7,8 @@ services:
       - './client.pem:/client.pem'
     restart: always
     command: >-
-      unifi-cam-proxy -H unifi-protect -i 192.168.31.19 -c /client.pem -t UojOceUtnvtaxpiY \
-          tapo \
-          -u username \
-          -p password \
-          --main-stream stream1 \
-          --sub-stream stream2 \
-          --ffmpeg-args='-c:v copy -bsf:v "h2m64_metadata=tick_rate=60000/1001" -ar 32000 -ac 1 -codec:a aac -b:a 32k'
+      unifi-cam-proxy -H unifi-protect -i 192.168.31.19 -c /client.pem -t UojOceUtnvtaxpiY tapo -u username -p password
+
   unifi-video-controller:
     image:  pducharme/unifi-video-controller
     container_name: unifi-video-controller
