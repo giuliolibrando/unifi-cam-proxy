@@ -133,6 +133,12 @@ class TapoCam(UnifiCamBase):
             default=None,
             help="Custom snapshot URL (optional, will use ONVIF if not provided)",
         )
+        parser.add_argument(
+            "--single-stream",
+            choices=["stream1", "stream2"],
+            default=None,
+            help="Use only one stream for both main and sub (stream1=HD, stream2=SD)",
+        )
 
     async def get_snapshot(self) -> Path:
         img_file = Path(self.snapshot_dir, "screen.jpg")
@@ -161,10 +167,16 @@ class TapoCam(UnifiCamBase):
 
     async def get_stream_source(self, stream_index: str) -> str:
         """Get RTSP stream URL for the specified stream index"""
-        if stream_index == "video1":
-            stream_profile = self.args.main_stream
+        # If single-stream is specified, use it for both main and sub
+        if self.args.single_stream:
+            stream_profile = self.args.single_stream
+            self.logger.info(f"Using single stream: {stream_profile}")
         else:
-            stream_profile = self.args.sub_stream
+            # Use separate streams for main and sub
+            if stream_index == "video1":
+                stream_profile = self.args.main_stream
+            else:
+                stream_profile = self.args.sub_stream
         
         # Tapo cameras typically use these RTSP URLs:
         # stream1: rtsp://username:password@ip:554/stream1

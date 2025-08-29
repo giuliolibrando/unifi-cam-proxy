@@ -24,6 +24,8 @@ optional arguments:
                         Sub stream profile to use (stream1=HD, stream2=SD)
   --snapshot-url SNAPSHOT_URL
                         Custom snapshot URL (optional, will use ONVIF if not provided)
+  --single-stream {stream1,stream2}
+                        Use only one stream for both main and sub (stream1=HD, stream2=SD)
 ```
 
 ## Tapo C200/C220/C500
@@ -39,11 +41,32 @@ optional arguments:
 
 ### Basic Usage
 
+#### Separate streams (default)
 ```sh
 unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
     tapo \
     -u {username} \
     -p {password} \
+    --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+```
+
+#### Single stream (HD only)
+```sh
+unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
+    tapo \
+    -u {username} \
+    -p {password} \
+    --single-stream stream1 \
+    --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+```
+
+#### Single stream (SD only)
+```sh
+unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
+    tapo \
+    -u {username} \
+    -p {password} \
+    --single-stream stream2 \
     --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
 ```
 
