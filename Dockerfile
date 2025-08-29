@@ -28,11 +28,22 @@ WORKDIR /app
 
 ARG version
 
+# Add edge repository for latest FFmpeg
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
+    echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+
 COPY --from=builder \
         /usr/local/lib/python${version}/site-packages \
         /usr/local/lib/python${version}/site-packages
 
-RUN apk add --update ffmpeg netcat-openbsd libusb-dev git
+RUN apk add --update \
+    ffmpeg \
+    ffmpeg-dev \
+    netcat-openbsd \
+    libusb-dev \
+    git \
+    && rm -rf /var/cache/apk/*
 
 COPY . .
 RUN pip install . --no-cache-dir
