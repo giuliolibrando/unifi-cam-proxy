@@ -7,7 +7,7 @@ services:
       - './client.pem:/client.pem'
     restart: always
     command: >-
-      unifi-cam-proxy -H 192.168.70.2 -i 192.168.31.19 -c /client.pem tapo -u username -p password
+      unifi-cam-proxy -H 192.168.70.2 -i 192.168.31.19 -c /client.pem -t OYTTGt52o4ioi2FgDmHIm0Y1TT7UOZhl tapo -u username -p password --ffmpeg-args='-c:v copy -ar 32000 -ac 1 -codec:a aac -b:a 32k'
 
 #  unifi-video-controller:
 #    image:  pducharme/unifi-video-controller
