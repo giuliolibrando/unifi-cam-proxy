@@ -5,6 +5,7 @@ dist
 venv
 client.pem
 run/
+docker-compose.dev.yaml
 MANIFEST
 MANIFEST.in
 .pyre/
