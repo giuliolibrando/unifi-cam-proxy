@@ -1,5 +1,5 @@
 ARG version=3.11
-ARG tag=${version}-alpine3.17
+ARG tag=${version}-alpine3.19
 
 FROM python:${tag} as builder
 WORKDIR /app
@@ -28,10 +28,7 @@ WORKDIR /app
 
 ARG version
 
-# Add edge repository for latest FFmpeg
-RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
-    echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
-    echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+# Alpine 3.19 includes latest stable FFmpeg
 
 COPY --from=builder \
         /usr/local/lib/python${version}/site-packages \
@@ -39,7 +36,6 @@ COPY --from=builder \
 
 RUN apk add --update \
     ffmpeg \
-    ffmpeg-dev \
     netcat-openbsd \
     libusb-dev \
     git \
