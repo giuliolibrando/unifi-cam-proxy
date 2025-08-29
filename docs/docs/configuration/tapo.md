@@ -4,9 +4,9 @@ sidebar_position: 7
 
 # Tapo
 
-Supporto per le telecamere Tapo (C200, C220, C500, ecc.) tramite protocollo ONVIF e stream RTSP.
+Support for Tapo cameras (C200, C220, C500, etc.) via ONVIF protocol and RTSP streams.
 
-## Opzioni
+## Options
 
 ```text
 optional arguments:
@@ -26,76 +26,75 @@ optional arguments:
                         Custom snapshot URL (optional, will use ONVIF if not provided)
 ```
 
-## Configurazione
+## Tapo C200/C220/C500
 
-### Configurazione ONVIF
+- [x] Supports full time recording
+- [x] Supports motion events via ONVIF
+- [x] Supports HD and SD streams
+- [x] Supports ONVIF snapshots
+- Notes:
+  - Requires ONVIF enabled on camera
+  - Motion detection must be configured in camera settings
+  - Uses PullPointManager for ONVIF events
 
-Prima di utilizzare il modulo Tapo, è necessario configurare l'account ONVIF sulla telecamera:
-
-1. Accedi all'interfaccia web della telecamera Tapo
-2. Vai su "Impostazioni" > "Avanzate" > "ONVIF"
-3. Abilita ONVIF e imposta username e password
-4. Assicurati che il rilevamento movimento sia abilitato
-
-### Esempio di utilizzo
+### Basic Usage
 
 ```sh
 unifi-cam-proxy --mac '{unique MAC}' -H {NVR IP} -i {camera IP} -c /client.pem -t {Adoption token} \
     tapo \
     -u {username} \
     -p {password} \
-    -m "stream1" \
-    -s "stream2" \
-    --ffmpeg-args='-c:v copy -bsf:v "h264_metadata=tick_rate=30000/1001" -ar 32000 -ac 1 -codec:a aac -b:a 32k'
+    --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
 ```
 
-### Stream RTSP
+### Docker Compose Example
 
-Le telecamere Tapo supportano due stream RTSP:
+```yaml
+version: '3.8'
 
-- **stream1**: Stream principale in alta definizione (HD)
-- **stream2**: Stream secondario in definizione standard (SD)
+services:
+  camera1:
+    build: .
+    container_name: camera1
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    environment:
+      - PROTECT_HOST=192.168.70.2
+      - PROTECT_TOKEN=your_adoption_token_here
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:10'
+      -i 192.168.31.10 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+```
 
-Gli URL RTSP seguono il formato:
+## Configuration
+
+### ONVIF Setup
+
+1. Access camera web interface
+2. Go to "Settings" > "Advanced" > "ONVIF"
+3. Enable ONVIF and set username/password
+4. Ensure motion detection is enabled
+
+### RTSP Streams
+
+Tapo cameras support two RTSP streams:
+- **stream1**: Main HD stream
+- **stream2**: Sub SD stream
+
+RTSP URLs format:
 ```
 rtsp://username:password@ip:554/stream1
 rtsp://username:password@ip:554/stream2
 ```
 
-### Eventi ONVIF
+### FFmpeg Parameters
 
-Il modulo utilizza il protocollo ONVIF per rilevare gli eventi di movimento. Gli eventi vengono monitorati tramite:
-
-1. Sottoscrizione agli eventi ONVIF
-2. Polling periodico dei messaggi di notifica
-3. Parsing degli eventi di movimento
-
-### Snapshot
-
-Il modulo supporta tre metodi per ottenere gli snapshot:
-
-1. **ONVIF Snapshot**: Utilizza il servizio ONVIF per ottenere snapshot
-2. **HTTP Snapshot**: Fallback su endpoint HTTP se ONVIF non è disponibile
-3. **Custom URL**: URL personalizzato specificato tramite `--snapshot-url`
-
-## Modelli supportati
-
-- [x] Tapo C200
-- [x] Tapo C220  
-- [x] Tapo C500
-- [x] Altri modelli Tapo con supporto ONVIF
-
-### Funzionalità
-
-- [x] Supporto per registrazione continua
-- [x] Eventi di movimento tramite ONVIF
-- [x] Stream HD e SD
-- [x] Snapshot automatici
-- [x] Controllo delle impostazioni video (se supportato dalla telecamera)
-
-### Note
-
-- Assicurati che ONVIF sia abilitato sulla telecamera
-- Il rilevamento movimento deve essere configurato nell'interfaccia della telecamera
-- Alcune telecamere potrebbero richiedere configurazioni specifiche per gli eventi ONVIF
-- Se gli eventi ONVIF non funzionano, considera l'uso del modulo RTSP generico
+Optimized FFmpeg parameters for Tapo cameras:
+- `-rtsp_transport tcp`: Use TCP for stable RTSP connection
+- `-timeout 15000000`: Extended timeout for slow connections
+- `-c:v libx264`: H.264 video encoding
+- `-preset ultrafast -tune zerolatency`: Low latency optimization
+- `-bsf:v filter_units=remove_types=6`: Remove problematic metadata
+- `-c:a aac -ar 32000 -ac 1 -b:a 32k`: Optimized audio settings
