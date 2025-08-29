@@ -1,57 +1,115 @@
-version: '3'
-services:
-  unifi-cam-proxy:
-    build: .
-    container_name: unifi-cam-proxy
-    volumes:
-      - './client.pem:/client.pem'
-    restart: always
-    command: >-
-      unifi-cam-proxy -H 192.168.70.2 -i 192.168.31.19 -c /client.pem -t OYTTGt52o4ioi2FgDmHIm0Y1TT7UOZhl tapo -u username -p password --ffmpeg-args='-c:v copy -ar 32000 -ac 1 -codec:a aac -b:a 32k'
+version: '3.8'
 
-#  unifi-video-controller:
-#    image:  pducharme/unifi-video-controller
-#    container_name: unifi-video-controller
-#    ports:
-#      - 1935:1935
-#      - 6666:6666
-#      - 7004:7004
-#      - 7080:7080
-#      - 7442:7442
-#      - 7443:7443
-#      - 7444:7444
-#      - 7445:7445
-#      - 7446:7446
-#      - 7447:7447
-#    volumes:
-#      - ./run/data:/var/lib/unifi-video
-#      - ./run/videos:/var/lib/unifi-video/videos
-#    environment:
-#      - TZ=America/Los_Angeles
-#      - DEBUG=1
-#    cap_add:
-#      - SYS_ADMIN
-#      - DAC_READ_SEARCH
-#    security_opt:
-#      - apparmor:unconfined
-#  unifi-protect:
-#    container_name: unifi-protect
-#    ports:
-#        - '7080:7080'
-#        - '7442:7442'
-#        - '7443:7443'
-#        - '7444:7444'
-#        - '7447:7447'
-#        - '7550:7550'
-#    volumes:
-#        - './run/protect/data:/srv/unifi-protect'
-#        - './run/protect/db:/var/lib/postgresql/10/main'
-#        - './run/protect/db_config:/etc/postgresql/10/main'
-#        - './run/protect/config.json:/usr/share/unifi-protect/app/config/config.json'
-#    environment:
-#        - TZ=America/Los_Angeles
-#        - PUID=999
-#        - PGID=999
-#        - PUID_POSTGRES=102
-#        - PGID_POSTGRES=104
-#    image: fryfrog/unifi-protect
+services:
+  # ========= Tapo Cams =========
+  ucp_giardino_cucina:
+    build: .
+    container_name: ucp_giardino_cucina
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:10'
+      -i 192.168.31.10 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  ucp_cucina:
+    build: .
+    container_name: ucp_cucina
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:18'
+      -i 192.168.31.18 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  ucp_strada:
+    build: .
+    container_name: ucp_strada
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:13'
+      -i 192.168.31.13 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  ucp_portone:
+    build: .
+    container_name: ucp_portone
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:14'
+      -i 192.168.31.14 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  ucp_studio:
+    build: .
+    container_name: ucp_studio
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:05'
+      -i 192.168.31.5 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  ucp_ingresso:
+    build: .
+    container_name: ucp_ingresso
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:17'
+      -i 192.168.31.17 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  ucp_zonanotte:
+    build: .
+    container_name: ucp_zonanotte
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:16'
+      -i 192.168.31.16 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  ucp_salotto:
+    build: .
+    container_name: ucp_salotto
+    restart: always
+    volumes: [ "./client.pem:/client.pem:ro" ]
+    command: >-
+      unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:19'
+      -i 192.168.31.19 -c /client.pem -t ${PROTECT_TOKEN}
+      tapo -u username -p password --single-stream stream2
+      --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  # ========= Non-Tapo (Hikvision/altre) =========
+  # ucp_giardino_matrimoniale:
+  #   build: .
+  #   container_name: ucp_giardino_matrimoniale
+  #   restart: always
+  #   volumes: [ "./client.pem:/client.pem:ro" ]
+  #   command: >-
+  #     unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:11'
+  #     -c /client.pem -t ${PROTECT_TOKEN}
+  #     hikvision -i 192.168.31.11 -u aaa -p aaa
+  #     --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+
+  # ucp_garage:
+  #   build: .
+  #   container_name: ucp_garage
+  #   restart: always
+  #   volumes: [ "./client.pem:/client.pem:ro" ]
+  #   command: >-
+  #     unifi-cam-proxy -H ${PROTECT_HOST} --mac '02:42:ac:11:00:12'
+  #     -c /client.pem -t ${PROTECT_TOKEN}
+  #     hikvision -i 192.168.31.12 -u aaa -p aaa
+  #     --ffmpeg-args='-rtsp_transport tcp -timeout 15000000 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -profile:v baseline -level 4.0 -x264-params keyint=30:min-keyint=30:scenecut=0:nal-hrd=cbr -g 30 -sc_threshold 0 -b:v 3000k -maxrate 3000k -bufsize 6000k -bsf:v filter_units=remove_types=6 -c:a aac -ar 32000 -ac 1 -b:a 32k'
+ 
