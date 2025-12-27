@@ -1,5 +1,7 @@
 import argparse
+import asyncio
 import logging
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -25,15 +27,9 @@ class YiCam(UnifiCamBase):
         self.snapshot_stream = None
         self.runner = None
         
-        # Costruisci gli URL RTSP per le camere Yi
-        # ch0_1.h264 = HD stream (video1)
-        # ch0_0.h264 = SD stream (video2/video3)
-        base_url = f"rtsp://{self.args.username}:{self.args.password}@{self.args.ip}"
-        self.stream_source = {
-            "video1": f"{base_url}/ch0_1.h264",  # Stream HD
-            "video2": f"{base_url}/ch0_0.h264",  # Stream SD
-            "video3": f"{base_url}/ch0_0.h264",  # Stream SD (stesso di video2)
-        }
+        # Usa go2rtc per il transcoding invece della camera direttamente
+        # go2rtc espone solo lo stream SD (ch0_0.h264) per evitare connessioni multiple
+        # Tutti gli stream (video1, video2, video3) usano lo stesso stream SD
         
         if not self.args.snapshot_url:
             self.start_snapshot_stream()
@@ -90,17 +86,20 @@ class YiCam(UnifiCamBase):
         )
 
     def start_snapshot_stream(self) -> None:
-        """Avvia uno stream per generare snapshot dallo stream SD"""
+        """Avvia uno stream per generare snapshot dallo stream SD di go2rtc"""
         if not self.snapshot_stream or self.snapshot_stream.poll() is not None:
-            # Usa lo stream SD (ch0_0.h264) per gli snapshot
-            snapshot_url = self.stream_source["video2"]
+            # Usa go2rtc per ottenere snapshot dallo stream RTSP (più affidabile)
+            # Prendi lo stream SD da go2rtc che è più veloce
+            ip_normalized = self.args.ip.replace(".", "_")
+            rtsp_url = f"rtsp://127.0.0.1:8554/yi_{ip_normalized}_sd"
+            
             cmd = (
-                f"ffmpeg -nostdin -y -re -rtsp_transport {self.args.rtsp_transport} "
-                f'-i "{snapshot_url}" '
+                f"ffmpeg -nostdin -y -re -rtsp_transport tcp "
+                f'-i "{rtsp_url}" '
                 "-r 1 "
                 f"-update 1 {self.snapshot_dir}/screen.jpg"
             )
-            self.logger.info(f"Avvio stream per snapshot: {cmd}")
+            self.logger.info(f"Avvio stream per snapshot da go2rtc: {cmd}")
             self.snapshot_stream = subprocess.Popen(
                 cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True
             )
@@ -153,6 +152,52 @@ class YiCam(UnifiCamBase):
             self.snapshot_stream.kill()
 
     async def get_stream_source(self, stream_index: str) -> str:
-        """Restituisce l'URL dello stream per l'indice specificato"""
-        return self.stream_source.get(stream_index, self.stream_source["video2"])
+        """Get RTSP stream URL for the specified stream index"""
+        # Usa go2rtc per il transcoding invece della camera direttamente
+        # go2rtc espone solo lo stream SD (ch0_0.h264) per evitare connessioni multiple
+        # Tutti gli stream (video1, video2, video3) usano lo stesso stream SD
+        ip_normalized = self.args.ip.replace(".", "_")
+        
+        # Tutti gli stream usano lo stesso stream SD
+        stream_name = f"yi_{ip_normalized}_sd"
+        
+        stream_url = f"rtsp://127.0.0.1:8554/{stream_name}"
+        self.logger.info(f"Using go2rtc stream SD for {stream_index} (IP: {self.args.ip}): {stream_url}")
+        
+        # Analyze stream properties on first access
+        if not hasattr(self, '_stream_analyzed'):
+            self._stream_analyzed = set()
+        if stream_index not in self._stream_analyzed:
+            await self._analyze_stream(stream_url, stream_index)
+            self._stream_analyzed.add(stream_index)
+        
+        return stream_url
+    
+    async def _analyze_stream(self, stream_url: str, stream_index: str) -> None:
+        """Analyze stream properties using ffmpeg and extract resolution"""
+        try:
+            # Use ffmpeg to get stream information
+            cmd = [
+                "ffmpeg", "-rtsp_transport", "tcp",
+                "-i", stream_url,
+                "-t", "1", "-f", "null", "-"
+            ]
+            result = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=5.0)
+            
+            # Parse resolution from stderr
+            stderr_str = stderr.decode()
+            import re
+            resolution_match = re.search(r'(\d+)x(\d+)', stderr_str)
+            if resolution_match:
+                width = int(resolution_match.group(1))
+                height = int(resolution_match.group(2))
+                self._stream_resolutions[stream_index] = (width, height)
+                self.logger.info(f"Stream {stream_index} resolution: {width}x{height}")
+        except Exception as e:
+            self.logger.warning(f"Failed to analyze stream {stream_index}: {e}")
 

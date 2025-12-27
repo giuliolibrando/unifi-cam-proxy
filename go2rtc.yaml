@@ -82,14 +82,26 @@ streams:
     - rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=tcp#timeout=30s
     - "ffmpeg:rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
 
-  # ========= Telecamera Yi (192.168.31.11) =========
+  # ========= Telecamera Yi 1 (192.168.31.11) =========
+  # Tutti gli stream puntano allo stream SD (ch0_0.h264)
   yi_192_168_31_11_hd_1080p:
-    - rtsp://127.0.0.1:8554/yi_192_168_31_11_sd
+    - rtsp://127.0.0.1:8554/yi_192_168_31_11_sd  # Usa lo stream SD
   
   yi_192_168_31_11_hd_720p:
-    - rtsp://127.0.0.1:8554/yi_192_168_31_11_sd
+    - rtsp://127.0.0.1:8554/yi_192_168_31_11_sd  # Usa lo stream SD
   
   yi_192_168_31_11_sd:
-    - rtsp://username:password@192.168.31.11/ch0_0.h264#rtsp_transport=tcp#timeout=30s
-    - "ffmpeg:rtsp://username:password@192.168.31.11/ch0_0.h264#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+    - rtsp://aaa:aaa@192.168.31.11/ch0_1.h264#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://aaa:aaa@192.168.31.11/ch0_1.h264#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+
+  # ========= Telecamera Yi 2 (192.168.31.12) =========
+  # Tutti gli stream puntano allo stream SD (ch0_0.h264)
+  yi_192_168_31_12_hd_1080p:
+    - rtsp://127.0.0.1:8554/yi_192_168_31_12_sd  # Usa lo stream SD
   
+  yi_192_168_31_12_hd_720p:
+    - rtsp://127.0.0.1:8554/yi_192_168_31_12_sd  # Usa lo stream SD
+  
+  yi_192_168_31_12_sd:
+    - rtsp://aaa:aaa@192.168.31.12/ch0_1.h264#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://aaa:aaa@192.168.31.12/ch0_1.h264#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
