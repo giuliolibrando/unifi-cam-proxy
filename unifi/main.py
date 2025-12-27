@@ -15,6 +15,7 @@ from unifi.cams import (
     ReolinkNVRCam,
     RTSPCam,
     TapoCam,
+    YiCam,
 )
 from unifi.core import Core
 from unifi.version import __version__
@@ -29,6 +30,7 @@ CAMS = {
     "reolink_nvr": ReolinkNVRCam,
     "rtsp": RTSPCam,
     "tapo": TapoCam,
+    "yi": YiCam,
 }
 
 

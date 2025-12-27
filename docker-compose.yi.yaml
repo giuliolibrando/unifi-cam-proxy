@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # ========= go2rtc per transcoding RTSP =========
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: go2rtc_yi
+    restart: always
+    network_mode: host
+    volumes:
+      - "./go2rtc.yaml:/config/go2rtc.yaml:ro"
+    environment:
+      - TZ=Europe/Rome
+
+  # ========= Yi Camera Proxy =========
+  # Build dell'immagine una sola volta, poi usata da tutti i container
+  # Camera 1: Yi su 192.168.31.11
+  camera_yi_1:
+    build: .
+    image: unifi-cam-proxy_camera_yi:latest
+    container_name: camera_yi_1
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.11
+      - CAMERA_MAC=02:42:ac:11:00:11
+      - CAMERA_NAME=Yi Camera 11
+      - CAMERA_USERNAME=${YI_USERNAME}
+      - CAMERA_PASSWORD=${YI_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" yi -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
+  # Camera 2: Yi su 192.168.31.12
+  camera_yi_2:
+    image: unifi-cam-proxy_camera_yi:latest
+    container_name: camera_yi_2
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.12
+      - CAMERA_MAC=02:42:ac:11:00:12
+      - CAMERA_NAME=Yi Camera 12
+      - CAMERA_USERNAME=${YI_USERNAME}
+      - CAMERA_PASSWORD=${YI_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" yi -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
