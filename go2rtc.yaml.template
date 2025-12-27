@@ -1,0 +1,21 @@
+# go2rtc configurazione per Tapo C220
+# Template - le variabili verranno sostituite dallo script
+# go2rtc riceve gli stream originali dalla camera e li espone
+# Il transcoding viene fatto dal proxy
+
+streams:
+  # Stream HD originale dalla camera
+  tapo_hd:
+    - rtsp://TAPO_USERNAME:TAPO_PASSWORD@192.168.31.19:554/stream1#rtsp_transport=tcp#timeout=30s
+  
+  # Stream SD originale dalla camera
+  tapo_sd:
+    - rtsp://TAPO_USERNAME:TAPO_PASSWORD@192.168.31.19:554/stream2#rtsp_transport=tcp#timeout=30s
+
+# Configurazione RTSP server
+rtsp:
+  listen: ":8554"
+
+# Configurazione FFmpeg per rtsp_transport
+ffmpeg:
+  rtsp_transport: tcp

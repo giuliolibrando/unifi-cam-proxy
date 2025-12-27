@@ -1,0 +1,84 @@
+# go2rtc configurazione per Tapo
+# Usiamo solo lo stream SD (stream2) per tutte le telecamere
+# Tutti gli stream (hd_1080p, hd_720p, sd) puntano allo stesso stream SD
+# go2rtc fa solo il transcoding audio (copy video, aac audio)
+
+streams:
+  # ========= Telecamera 1: Tapo C220 (192.168.31.19) =========
+  # Tutti gli stream puntano allo stream SD (stream2)
+  tapo_192_168_31_19_hd_1080p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_19_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_19_hd_720p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_19_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_19_sd:
+    - rtsp://username:password@192.168.31.19:554/stream2#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://username:password@192.168.31.19:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+
+  # ========= Telecamera 2: Tapo (192.168.31.18) =========
+  tapo_192_168_31_18_hd_1080p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_18_hd_720p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_18_sd:
+    - rtsp://username:password@192.168.31.18:554/stream2#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://username:password@192.168.31.18:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+
+  # ========= Telecamera 3: Tapo (192.168.31.13) =========
+  tapo_192_168_31_13_hd_1080p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_13_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_13_hd_720p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_13_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_13_sd:
+    - rtsp://username:password@192.168.31.13:554/stream2#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://username:password@192.168.31.13:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+
+  # ========= Telecamera 4: Tapo (192.168.31.15) =========
+  tapo_192_168_31_15_hd_1080p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_15_hd_720p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_15_sd:
+    - rtsp://username:password@192.168.31.15:554/stream2#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://username:password@192.168.31.15:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+
+  # ========= Telecamera 5: Tapo (192.168.31.17) =========
+  tapo_192_168_31_17_hd_1080p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_17_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_17_hd_720p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_17_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_17_sd:
+    - rtsp://username:password@192.168.31.17:554/stream2#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://username:password@192.168.31.17:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+
+  # ========= Telecamera 6: Tapo (192.168.31.16) =========
+  tapo_192_168_31_16_hd_1080p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_16_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_16_hd_720p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_16_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_16_sd:
+    - rtsp://username:password@192.168.31.16:554/stream2#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://username:password@192.168.31.16:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+
+  # ========= Telecamera 7: Tapo C500 (192.168.31.10) - NUOVO =========
+  tapo_192_168_31_10_hd_1080p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_10_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_10_hd_720p:
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_10_sd  # Usa lo stream SD
+  
+  tapo_192_168_31_10_sd:
+    - rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=tcp#timeout=30s
+    - "ffmpeg:rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+

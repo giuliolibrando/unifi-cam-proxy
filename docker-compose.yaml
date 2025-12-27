@@ -1,70 +1,206 @@
-version: '3'
+version: '3.8'
+
 services:
-  unifi-cam-proxy:
-    build: .
-    container_name: unifi-cam-proxy
-    volumes:
-      - './client.pem:/client.pem'
-    environment:
-      - "HOST=192.168.103.180"
-      - "TOKEN=UojOceUtnvtaxpiY"
-      - "RTSP_URL=rtsp://freja.hiof.no:1935/rtplive/definst/hessdalen03.stream"
+  # ========= go2rtc per transcoding RTSP =========
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: go2rtc_tapo
     restart: always
-  unifi-video-controller:
-    image:  pducharme/unifi-video-controller
-    container_name: unifi-video-controller
-    ports:
-      - 1935:1935
-      - 6666:6666
-      - 7004:7004
-      - 7080:7080
-      - 7442:7442
-      - 7443:7443
-      - 7444:7444
-      - 7445:7445
-      - 7446:7446
-      - 7447:7447
+    network_mode: host
     volumes:
-      - ./run/data:/var/lib/unifi-video
-      - ./run/videos:/var/lib/unifi-video/videos
+      - "./go2rtc.yaml:/config/go2rtc.yaml:ro"
     environment:
-      - TZ=America/Los_Angeles
-      - DEBUG=1
-    cap_add:
-      - SYS_ADMIN
-      - DAC_READ_SEARCH
-    security_opt:
-      - apparmor:unconfined
-  unifi-protect:
-    container_name: unifi-protect
-    ports:
-        - '7080:7080'
-        - '7442:7442'
-        - '7443:7443'
-        - '7444:7444'
-        - '7447:7447'
-        - '7550:7550'
-    volumes:
-        - './run/protect/data:/srv/unifi-protect'
-        - './run/protect/db:/var/lib/postgresql/10/main'
-        - './run/protect/db_config:/etc/postgresql/10/main'
-        - './run/protect/config.json:/usr/share/unifi-protect/app/config/config.json'
+      - TZ=Europe/Rome
+
+  # ========= Tapo Camera Proxy =========
+  # Build dell'immagine una sola volta, poi usata da tutti i container
+  # Camera 1: Tapo C220 su 192.168.31.19
+  camera_tapo_1:
+    build: .
+    image: unifi-cam-proxy_camera_tapo:latest
+    container_name: camera_tapo_1
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
     environment:
-        - TZ=America/Los_Angeles
-        - PUID=999
-        - PGID=999
-        - PUID_POSTGRES=102
-        - PGID_POSTGRES=104
-    image: fryfrog/unifi-protect
-  frigate:
-    image: blakeblackshear/frigate:stable-amd64
-    privileged: true
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - type: tmpfs
-        target: /tmp/cache
-        tmpfs:
-          size: 1000000000
-      - ./run/frigate:/config
-    ports:
-      - "5000:5000"
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.19
+      - CAMERA_MAC=02:42:ac:11:00:19
+      - CAMERA_NAME=Tapo C220
+      - CAMERA_USERNAME=${TAPO_USERNAME}
+      - CAMERA_PASSWORD=${TAPO_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
+  # Camera 2: Tapo su 192.168.31.18
+  camera_tapo_2:
+    image: unifi-cam-proxy_camera_tapo:latest
+    container_name: camera_tapo_2
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.18
+      - CAMERA_MAC=02:42:ac:11:00:18
+      - CAMERA_NAME=Tapo Camera 18
+      - CAMERA_USERNAME=${TAPO_USERNAME}
+      - CAMERA_PASSWORD=${TAPO_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
+  # Camera 3: Tapo su 192.168.31.13
+  camera_tapo_3:
+    image: unifi-cam-proxy_camera_tapo:latest
+    container_name: camera_tapo_3
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.13
+      - CAMERA_MAC=02:42:ac:11:00:13
+      - CAMERA_NAME=Tapo Camera 13
+      - CAMERA_USERNAME=${TAPO_USERNAME}
+      - CAMERA_PASSWORD=${TAPO_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
+  # Camera 4: Tapo su 192.168.31.15
+  camera_tapo_4:
+    image: unifi-cam-proxy_camera_tapo:latest
+    container_name: camera_tapo_4
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.15
+      - CAMERA_MAC=02:42:ac:11:00:15
+      - CAMERA_NAME=Tapo Camera 15
+      - CAMERA_USERNAME=${TAPO_USERNAME}
+      - CAMERA_PASSWORD=${TAPO_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
+  # Camera 5: Tapo su 192.168.31.17
+  camera_tapo_5:
+    image: unifi-cam-proxy_camera_tapo:latest
+    container_name: camera_tapo_5
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.17
+      - CAMERA_MAC=02:42:ac:11:00:17
+      - CAMERA_NAME=Tapo Camera 17
+      - CAMERA_USERNAME=${TAPO_USERNAME}
+      - CAMERA_PASSWORD=${TAPO_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
+  # Camera 6: Tapo su 192.168.31.16
+  camera_tapo_6:
+    image: unifi-cam-proxy_camera_tapo:latest
+    container_name: camera_tapo_6
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.16
+      - CAMERA_MAC=02:42:ac:11:00:16
+      - CAMERA_NAME=Tapo Camera 16
+      - CAMERA_USERNAME=${TAPO_USERNAME}
+      - CAMERA_PASSWORD=${TAPO_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+
+  # Camera 7: Tapo C500 su 192.168.31.10 (NUOVO)
+  camera_tapo_7:
+    image: unifi-cam-proxy_camera_tapo:latest
+    container_name: camera_tapo_7
+    restart: always
+    network_mode: host
+    depends_on:
+      - go2rtc
+    volumes: 
+      - "./client.pem:/client.pem:ro"
+    environment:
+      - PROTECT_HOST=${PROTECT_HOST}
+      - PROTECT_TOKEN=${PROTECT_TOKEN}
+      - CAMERA_IP=192.168.31.10
+      - CAMERA_MAC=02:42:ac:11:00:10
+      - CAMERA_NAME=Tapo C500
+      - CAMERA_USERNAME=${TAPO_USERNAME}
+      - CAMERA_PASSWORD=${TAPO_PASSWORD}
+      - TZ=Europe/Rome
+    command: >-
+      sh -c "
+      sleep 5 &&
+      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
+      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
+      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
+      "
+

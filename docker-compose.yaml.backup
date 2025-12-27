@@ -1,0 +1,93 @@
+version: '3.8'
+
+# Prima esporta:
+# export PROTECT_HOST=192.168.31.95
+# export PROTECT_TOKEN=<<<token unico>>>
+
+x-ucp-common: &ucp
+  build: .
+  restart: always
+  network_mode: host
+  volumes:
+    - "./client.pem:/client.pem:ro"
+
+services:
+  ucp_giardino_cucina:
+    <<: *ucp
+    container_name: ucp_giardino_cucina
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:10' -H ${PROTECT_HOST} -i 192.168.31.10 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/giardino_cucina'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_giardino_cucina"
+
+  ucp_cucina:
+    <<: *ucp
+    container_name: ucp_cucina
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:18' -H ${PROTECT_HOST} -i 192.168.31.18 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/cucina'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_cucina"
+
+  ucp_strada:
+    <<: *ucp
+    container_name: ucp_strada
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:13' -H ${PROTECT_HOST} -i 192.168.31.13 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/strada'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_strada"
+
+  ucp_portone:
+    <<: *ucp
+    container_name: ucp_portone
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:14' -H ${PROTECT_HOST} -i 192.168.31.14 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/portone'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_portone"
+
+  ucp_studio:
+    <<: *ucp
+    container_name: ucp_studio
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:05' -H ${PROTECT_HOST} -i 192.168.31.5 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/studio'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_studio"
+
+  ucp_ingresso:
+    <<: *ucp
+    container_name: ucp_ingresso
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:17' -H ${PROTECT_HOST} -i 192.168.31.17 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/ingresso'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_ingresso"
+
+  ucp_zonanotte:
+    <<: *ucp
+    container_name: ucp_zonanotte
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:16' -H ${PROTECT_HOST} -i 192.168.31.16 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/zonanotte'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_zonanotte"
+
+  ucp_salotto:
+    <<: *ucp
+    container_name: ucp_salotto
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:19' -H ${PROTECT_HOST} -i 192.168.31.19 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/salotto'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_salotto"
