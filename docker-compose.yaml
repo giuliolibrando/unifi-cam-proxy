@@ -1,206 +1,93 @@
 version: '3.8'
 
+# Prima esporta:
+# export PROTECT_HOST=192.168.31.95
+# export PROTECT_TOKEN=<<<token unico>>>
+
+x-ucp-common: &ucp
+  build: .
+  restart: always
+  network_mode: host
+  volumes:
+    - "./client.pem:/client.pem:ro"
+
 services:
-  # ========= go2rtc per transcoding RTSP =========
-  go2rtc:
-    image: alexxit/go2rtc:latest
-    container_name: go2rtc_tapo
-    restart: always
-    network_mode: host
-    volumes:
-      - "./go2rtc.yaml:/config/go2rtc.yaml:ro"
-    environment:
-      - TZ=Europe/Rome
-
-  # ========= Tapo Camera Proxy =========
-  # Build dell'immagine una sola volta, poi usata da tutti i container
-  # Camera 1: Tapo C220 su 192.168.31.19
-  camera_tapo_1:
-    build: .
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_1
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.19
-      - CAMERA_MAC=02:42:ac:11:00:19
-      - CAMERA_NAME=Tapo C220
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+  ucp_giardino_cucina:
+    <<: *ucp
+    container_name: ucp_giardino_cucina
     command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:10' -H ${PROTECT_HOST} -i 192.168.31.10 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/giardino_cucina'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_giardino_cucina"
 
-  # Camera 2: Tapo su 192.168.31.18
-  camera_tapo_2:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_2
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.18
-      - CAMERA_MAC=02:42:ac:11:00:18
-      - CAMERA_NAME=Tapo Camera 18
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+  ucp_cucina:
+    <<: *ucp
+    container_name: ucp_cucina
     command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:18' -H ${PROTECT_HOST} -i 192.168.31.18 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/cucina'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_cucina"
 
-  # Camera 3: Tapo su 192.168.31.13
-  camera_tapo_3:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_3
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.13
-      - CAMERA_MAC=02:42:ac:11:00:13
-      - CAMERA_NAME=Tapo Camera 13
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+  ucp_strada:
+    <<: *ucp
+    container_name: ucp_strada
     command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:13' -H ${PROTECT_HOST} -i 192.168.31.13 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/strada'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_strada"
 
-  # Camera 4: Tapo su 192.168.31.15
-  camera_tapo_4:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_4
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.15
-      - CAMERA_MAC=02:42:ac:11:00:15
-      - CAMERA_NAME=Tapo Camera 15
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+  ucp_portone:
+    <<: *ucp
+    container_name: ucp_portone
     command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:14' -H ${PROTECT_HOST} -i 192.168.31.14 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/portone'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_portone"
 
-  # Camera 5: Tapo su 192.168.31.17
-  camera_tapo_5:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_5
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.17
-      - CAMERA_MAC=02:42:ac:11:00:17
-      - CAMERA_NAME=Tapo Camera 17
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+  ucp_studio:
+    <<: *ucp
+    container_name: ucp_studio
     command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:05' -H ${PROTECT_HOST} -i 192.168.31.5 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/studio'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_studio"
 
-  # Camera 6: Tapo su 192.168.31.16
-  camera_tapo_6:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_6
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.16
-      - CAMERA_MAC=02:42:ac:11:00:16
-      - CAMERA_NAME=Tapo Camera 16
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+  ucp_ingresso:
+    <<: *ucp
+    container_name: ucp_ingresso
     command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:17' -H ${PROTECT_HOST} -i 192.168.31.17 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/ingresso'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_ingresso"
 
-  # Camera 7: Tapo C500 su 192.168.31.10 (NUOVO)
-  camera_tapo_7:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_7
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.10
-      - CAMERA_MAC=02:42:ac:11:00:10
-      - CAMERA_NAME=Tapo C500
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+  ucp_zonanotte:
+    <<: *ucp
+    container_name: ucp_zonanotte
     command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:16' -H ${PROTECT_HOST} -i 192.168.31.16 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/zonanotte'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_zonanotte"
 
+  ucp_salotto:
+    <<: *ucp
+    container_name: ucp_salotto
+    command: >-
+      sh -lc "pip install --no-cache-dir 'paho-mqtt<2' 'asyncio-mqtt==0.12.1' &&
+      unifi-cam-proxy --mac '02:42:ac:11:00:19' -H ${PROTECT_HOST} -i 192.168.31.19 -c /client.pem -t ${PROTECT_TOKEN}
+      frigate -s 'rtsp://192.168.31.96:8554/salotto'
+      --mqtt-host 192.168.31.97 --mqtt-port 1883 --mqtt-username mqtt-user --mqtt-password 'WNwoSHJLX2VsP6c3Csi*CllDbd'
+      --frigate-camera telecamera_salotto"

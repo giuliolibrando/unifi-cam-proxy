@@ -18,10 +18,10 @@ streams:
 
   # ========= Telecamera 2: Tapo (192.168.31.18) =========
   tapo_192_168_31_18_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd
   
   tapo_192_168_31_18_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd
   
   tapo_192_168_31_18_sd:
     - rtsp://username:password@192.168.31.18:554/stream2#rtsp_transport=tcp#timeout=30s
@@ -29,10 +29,10 @@ streams:
 
   # ========= Telecamera 3: Tapo (192.168.31.13) =========
   tapo_192_168_31_13_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_13_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_13_sd
   
   tapo_192_168_31_13_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_13_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_13_sd
   
   tapo_192_168_31_13_sd:
     - rtsp://username:password@192.168.31.13:554/stream2#rtsp_transport=tcp#timeout=30s
@@ -40,10 +40,10 @@ streams:
 
   # ========= Telecamera 4: Tapo (192.168.31.15) =========
   tapo_192_168_31_15_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd
   
   tapo_192_168_31_15_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd
   
   tapo_192_168_31_15_sd:
     - rtsp://username:password@192.168.31.15:554/stream2#rtsp_transport=tcp#timeout=30s
@@ -51,10 +51,10 @@ streams:
 
   # ========= Telecamera 5: Tapo (192.168.31.17) =========
   tapo_192_168_31_17_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_17_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_17_sd
   
   tapo_192_168_31_17_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_17_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_17_sd
   
   tapo_192_168_31_17_sd:
     - rtsp://username:password@192.168.31.17:554/stream2#rtsp_transport=tcp#timeout=30s
@@ -62,23 +62,22 @@ streams:
 
   # ========= Telecamera 6: Tapo (192.168.31.16) =========
   tapo_192_168_31_16_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_16_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_16_sd
   
   tapo_192_168_31_16_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_16_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_16_sd
   
   tapo_192_168_31_16_sd:
     - rtsp://username:password@192.168.31.16:554/stream2#rtsp_transport=tcp#timeout=30s
     - "ffmpeg:rtsp://username:password@192.168.31.16:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
 
-  # ========= Telecamera 7: Tapo C500 (192.168.31.10) - NUOVO =========
+  # ========= Telecamera 7: Tapo C500 (192.168.31.10) =========
   tapo_192_168_31_10_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_10_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_10_sd
   
   tapo_192_168_31_10_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_10_sd  # Usa lo stream SD
+    - rtsp://127.0.0.1:8554/tapo_192_168_31_10_sd
   
   tapo_192_168_31_10_sd:
     - rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=tcp#timeout=30s
     - "ffmpeg:rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=tcp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
-
