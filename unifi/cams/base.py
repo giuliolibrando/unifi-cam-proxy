@@ -2,6 +2,7 @@ import argparse
 import atexit
 import json
 import logging
+import os
 import shutil
 import ssl
 import subprocess
@@ -27,6 +28,66 @@ AVClientRequest = AVClientResponse = dict[str, Any]
 class SmartDetectObjectType(Enum):
     PERSON = "person"
     VEHICLE = "vehicle"
+
+
+def get_unifi_timezone() -> str:
+    """
+    Converte il timezone dalla variabile d'ambiente TZ al formato POSIX richiesto da UniFi.
+    Formato UniFi: STD[offset]DST[offset],start[/time],end[/time]
+    Esempio: CET-1CEST,M3.5.0/2,M10.5.0/3 per Europe/Rome
+    """
+    tz_env = os.environ.get("TZ", "")
+    logger = logging.getLogger("UnifiCamBase")
+    logger.info(f"🔍 Reading TZ environment variable: '{tz_env}' (empty if not set)")
+    
+    # Mappatura dei timezone IANA più comuni al formato POSIX UniFi
+    timezone_map = {
+        "Europe/Rome": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+        "Europe/Paris": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+        "Europe/Berlin": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+        "Europe/Madrid": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+        "Europe/Amsterdam": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+        "Europe/Brussels": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+        "Europe/London": "GMT0BST,M3.5.0/1,M10.5.0/2",
+        "America/New_York": "EST5EDT,M3.2.0,M11.1.0",
+        "America/Los_Angeles": "PST8PDT,M3.2.0,M11.1.0",
+        "America/Chicago": "CST6CDT,M3.2.0,M11.1.0",
+        "America/Denver": "MST7MDT,M3.2.0,M11.1.0",
+        "Asia/Tokyo": "JST-9",
+        "UTC": "UTC0",
+    }
+    
+    result = None
+    reason = ""
+    
+    # Se troviamo una mappatura diretta, usiamola
+    if tz_env in timezone_map:
+        result = timezone_map[tz_env]
+        reason = f"found in timezone_map"
+    # Se il timezone è già in formato POSIX, usiamolo direttamente
+    elif tz_env and "," in tz_env:
+        result = tz_env
+        reason = "already in POSIX format"
+    # Fallback: usa PST8PDT se non troviamo una mappatura
+    elif not tz_env:
+        result = "PST8PDT,M3.2.0,M11.1.0"
+        reason = "TZ not set, using PST fallback"
+    # Prova a estrarre informazioni base dal nome del timezone
+    elif tz_env.startswith("Europe/"):
+        # Per altri timezone europei, usa CET come approssimazione
+        result = "CET-1CEST,M3.5.0/2,M10.5.0/3"
+        reason = f"Europe/* timezone, using CET approximation"
+    elif tz_env.startswith("America/"):
+        # Per altri timezone americani, usa PST come fallback
+        result = "PST8PDT,M3.2.0,M11.1.0"
+        reason = f"America/* timezone, using PST fallback"
+    else:
+        # Fallback finale
+        result = "PST8PDT,M3.2.0,M11.1.0"
+        reason = "unknown timezone, using PST fallback"
+    
+    logger.info(f"✅ Timezone selected: '{result}' ({reason})")
+    return result
 
 
 class UnifiCamBase(metaclass=ABCMeta):
@@ -285,23 +346,23 @@ class UnifiCamBase(metaclass=ABCMeta):
             f"Adopting with token [{self.args.token}] and mac [{self.args.mac}]"
         )
         hello_payload = {
-            "adoptionCode": self.args.token,
-            "connectionHost": self.args.host,
-            "connectionSecurePort": 7442,
-            "fwVersion": self.args.fw_version,
-            "hwrev": 19,
-            "idleTime": 191.96,
-            "ip": self.args.ip,
-            "mac": self.args.mac,
-            "model": self.args.model,
-            "name": self.args.name,
-            "protocolVersion": 67,
-            "rebootTimeoutSec": 30,
-            "semver": "v4.4.8",
-            "totalLoad": 0.5474,
-            "upgradeTimeoutSec": 150,
-            "uptime": int(self.get_uptime()),
-            "features": await self.get_feature_flags(),
+                    "adoptionCode": self.args.token,
+                    "connectionHost": self.args.host,
+                    "connectionSecurePort": 7442,
+                    "fwVersion": self.args.fw_version,
+                    "hwrev": 19,
+                    "idleTime": 191.96,
+                    "ip": self.args.ip,
+                    "mac": self.args.mac,
+                    "model": self.args.model,
+                    "name": self.args.name,
+                    "protocolVersion": 67,
+                    "rebootTimeoutSec": 30,
+                    "semver": "v4.4.8",
+                    "totalLoad": 0.5474,
+                    "upgradeTimeoutSec": 150,
+                    "uptime": int(self.get_uptime()),
+                    "features": await self.get_feature_flags(),
         }
         self.logger.info(f"Sending hello response with model: '{self.args.model}', name: '{self.args.name}'")
         self.logger.info(f"Full hello payload: {hello_payload}")
@@ -672,12 +733,14 @@ class UnifiCamBase(metaclass=ABCMeta):
         )
 
     async def process_device_settings(self, msg: AVClientRequest) -> AVClientResponse:
+        timezone = get_unifi_timezone()
+        self.logger.info(f"Using timezone from TZ env: {os.environ.get('TZ', 'not set')} -> UniFi format: {timezone}")
         return self.gen_response(
             "ChangeDeviceSettings",
             msg["messageId"],
             {
                 "name": self.args.name,
-                "timezone": "PST8PDT,M3.2.0,M11.1.0",
+                "timezone": timezone,
             },
         )
 
@@ -877,7 +940,7 @@ class UnifiCamBase(metaclass=ABCMeta):
             else:
                 self.logger.warning(
                     f"⚠️  Snapshot file {path} is not ready yet for {snapshot_type}, skipping upload"
-                )
+            )
 
         if msg["responseExpected"]:
             return self.gen_response("GetRequest", response_to=msg["messageId"])
