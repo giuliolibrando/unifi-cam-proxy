@@ -176,6 +176,7 @@ class TapoCam(UnifiCamBase):
             stream_name = f"tapo_{ip_normalized}_sd"
             rtsp_url = f"rtsp://127.0.0.1:8554/{stream_name}"
             
+            snapshot_success = False
             try:
                 # Usa FFmpeg per estrarre un frame dallo stream RTSP
                 cmd = (
@@ -187,44 +188,56 @@ class TapoCam(UnifiCamBase):
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
-                stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=5.0)
+                stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=5.0)  # Reduced timeout for faster fallback
                 
                 if result.returncode == 0 and img_file.exists() and img_file.stat().st_size > 0:
-                    self.logger.debug(f"Snapshot captured from go2rtc stream: {img_file}")
-                    return img_file
+                    self.logger.debug(f"✅ Snapshot captured from go2rtc stream: {img_file}")
+                    snapshot_success = True
                 else:
-                    self.logger.warning(f"FFmpeg snapshot failed: {stderr.decode()[:200]}")
+                    stderr_str = stderr.decode()[:200] if stderr else ""
+                    self.logger.warning(f"⚠️  FFmpeg snapshot from go2rtc failed: {stderr_str}")
             except asyncio.TimeoutError:
-                self.logger.warning("Snapshot capture timed out")
+                self.logger.warning("⚠️  Snapshot capture from go2rtc timed out, trying fallback...")
             except Exception as e:
-                self.logger.warning(f"Failed to get snapshot from go2rtc: {e}")
+                self.logger.warning(f"⚠️  Failed to get snapshot from go2rtc: {e}, trying fallback...")
             
-            # Fallback: prova HTTP snapshot
-            http_urls = [
-                f"http://{self.args.username}:{self.args.password}@{self.args.ip}/streaming/snapshot.jpg",
-                f"http://{self.args.username}:{self.args.password}@{self.args.ip}/snapshot.jpg",
-            ]
+            # Fallback: prova HTTP snapshot direttamente dalla telecamera (più veloce quando go2rtc non funziona)
+            if not snapshot_success:
+                self.logger.info(f"🔄 Trying HTTP snapshot fallback for {self.args.ip}...")
+                http_urls = [
+                    f"http://{self.args.username}:{self.args.password}@{self.args.ip}/streaming/snapshot.jpg",
+                    f"http://{self.args.username}:{self.args.password}@{self.args.ip}/snapshot.jpg",
+                ]
+                
+                for url in http_urls:
+                    try:
+                        if await self.fetch_to_file(url, img_file):
+                            if img_file.exists() and img_file.stat().st_size > 0:
+                                self.logger.info(f"✅ Snapshot captured via HTTP from {self.args.ip}")
+                                snapshot_success = True
+                                break
+                    except Exception as e:
+                        self.logger.debug(f"HTTP snapshot URL {url} failed: {e}")
+                        continue
+                
+                # Fallback finale: ONVIF snapshot
+                if not snapshot_success and self.media and len(self.profiles) > 0:
+                    try:
+                        self.logger.info(f"🔄 Trying ONVIF snapshot fallback for {self.args.ip}...")
+                        profile = self.profiles[0]
+                        snapshot_uri = await self.media.GetSnapshotUri({
+                            'ProfileToken': profile.token
+                        })
+                        snapshot_uri = snapshot_uri.Uri
+                        if await self.fetch_to_file(snapshot_uri, img_file):
+                            if img_file.exists() and img_file.stat().st_size > 0:
+                                self.logger.info(f"✅ Snapshot captured via ONVIF from {self.args.ip}")
+                                snapshot_success = True
+                    except Exception as e:
+                        self.logger.warning(f"⚠️  Failed to get ONVIF snapshot: {e}")
             
-            snapshot_fetched = False
-            for url in http_urls:
-                try:
-                    if await self.fetch_to_file(url, img_file):
-                        snapshot_fetched = True
-                        break
-                except Exception:
-                    continue
-            
-            # Fallback finale: ONVIF snapshot
-            if not snapshot_fetched and self.media and len(self.profiles) > 0:
-                try:
-                    profile = self.profiles[0]
-                    snapshot_uri = await self.media.GetSnapshotUri({
-                        'ProfileToken': profile.token
-                    })
-                    snapshot_uri = snapshot_uri.Uri
-                    await self.fetch_to_file(snapshot_uri, img_file)
-                except Exception as e:
-                    self.logger.warning(f"Failed to get ONVIF snapshot: {e}")
+            if not snapshot_success:
+                self.logger.error(f"❌ All snapshot methods failed for {self.args.ip}")
         
         return img_file
 
@@ -456,10 +469,14 @@ class TapoCam(UnifiCamBase):
                             
                         elif name == "IsMotion":
                             # Generic motion detected - send motion event immediately
-                            # If Person arrives later, we'll upgrade it to Smart Detect
+                            # BUT: Don't send generic motion if Smart Detect is already active
+                            # This prevents overwriting Smart Detect events with generic motion
                             if not self.motion_in_progress:
                                 self.motion_in_progress = True
                                 await self.trigger_motion_start()
+                            elif self._motion_object_type is not None:
+                                # Smart Detect is active, don't downgrade to generic motion
+                                self.logger.debug(f"Ignoring IsMotion event - Smart Detect ({self._motion_object_type.value}) already active")
                             # If motion already active, ignore duplicate
                         else:
                             # Other motion types - send immediately

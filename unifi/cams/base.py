@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import atexit
 import json
 import logging
@@ -103,6 +104,7 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._motion_event_ts: Optional[float] = None
         self._motion_object_type: Optional[SmartDetectObjectType] = None
         self._ffmpeg_handles: dict[str, subprocess.Popen] = {}
+        self._stream_start_times: dict[str, float] = {}  # Track when each stream started for clockStream calculation
 
         # Set up ssl context for requests
         self._ssl_context = ssl.create_default_context()
@@ -135,11 +137,21 @@ class UnifiCamBase(metaclass=ABCMeta):
         while True:
             try:
                 msg = await ws.recv()
-            except websockets.exceptions.ConnectionClosedError:
-                self.logger.info(f"Connection to {self.args.host} was closed.")
+            except websockets.exceptions.ConnectionClosedError as e:
+                self.logger.info(f"Connection to {self.args.host} was closed: {e}")
                 raise RetryableError()
 
             if msg is not None:
+                # Log received WebSocket messages for debugging (especially Smart Detect related)
+                try:
+                    msg_dict = json.loads(msg)
+                    fn = msg_dict.get("functionName", "unknown")
+                    # Log ALL messages at INFO level to understand what UniFi Protect expects
+                    payload_str = json.dumps(msg_dict.get("payload", {}), indent=2)
+                    self.logger.info(f"🔵 WSS Received: {fn}\n{payload_str}")
+                except Exception as e:
+                    self.logger.debug(f"🔵 WSS Received: (non-JSON message): {e}")
+                
                 force_reconnect = await self.process(msg)
                 if force_reconnect:
                     self.logger.info("Reconnecting...")
@@ -182,6 +194,15 @@ class UnifiCamBase(metaclass=ABCMeta):
         is_upgrade = self._motion_event_ts and object_type and (not self._motion_object_type or self._motion_object_type != object_type)
         
         if not self._motion_event_ts or is_upgrade:
+            # Ensure at least one video stream is active for recording
+            # UniFi Protect needs active streams to record video for events
+            active_streams = [k for k, v in self._ffmpeg_handles.items() if v.poll() is None]
+            if not active_streams:
+                self.logger.warning("⚠️  No active video streams detected. UniFi Protect may not record video for this event.")
+                self.logger.warning("⚠️  Ensure UniFi Protect is configured for continuous recording or that streams are active.")
+            else:
+                self.logger.info(f"✅ Active video streams: {active_streams}")
+            
             # Capture snapshot BEFORE sending event, for both Smart Detect and generic motion events
             # This ensures the snapshot is ready when UniFi Protect requests it
             motion_snapshot_path: str = tempfile.NamedTemporaryFile(delete=False).name
@@ -197,11 +218,21 @@ class UnifiCamBase(metaclass=ABCMeta):
                 self.logger.warning(f"❌ Failed to capture snapshot: {e}")
                 self._motion_snapshot = None
             
+            # Calculate clockStream based on the oldest active stream's start time
+            # This ensures clockStream matches the video stream timestamps for proper playback
+            # clockStream should be in milliseconds from stream start, matching clock_sync.py behavior
+            clock_stream_value = int(self.get_uptime() * 1000)
+            if self._stream_start_times:
+                # Use the oldest stream's start time as the base for clockStream
+                # This matches the streamClock injected by clock_sync.py into the video stream
+                oldest_stream_start = min(self._stream_start_times.values())
+                clock_stream_value = int((time.time() - oldest_stream_start) * 1000)
+            
             payload: dict[str, Any] = {
                 "clockBestMonotonic": 0,
                 "clockBestWall": 0,
                 "clockMonotonic": int(self.get_uptime()),
-                "clockStream": int(self.get_uptime()),
+                "clockStream": clock_stream_value,
                 "clockStreamRate": 1000,
                 "clockWall": int(round(time.time() * 1000)),
                 "edgeType": "start",
@@ -229,19 +260,24 @@ class UnifiCamBase(metaclass=ABCMeta):
                     {
                         "objectTypes": [object_type.value],
                         "edgeType": "enter",
-                        "zonesStatus": {"0": 48},
+                        "eventType": "smartDetect",  # Change eventType for Smart Detect events
+                        "zonesStatus": {"1": 48},  # Use zone "1" which matches ChangeSmartDetectSettings zones configuration
                         "smartDetectSnapshot": "motionsnap.jpg",  # UniFi will request this via API
                         "smartDetectSnapshotWidth": snapshot_width,
                         "smartDetectSnapshotHeight": snapshot_height,
-                        # Keep motion data to help UniFi Protect validate the event
+                        "score": 85,  # Confidence score for Smart Detect (0-100)
+                        "detectionId": f"smartdetect_{self._motion_event_id}",  # Unique detection ID
+                        # Keep motion data for Smart Detect events - UniFi Protect may need it for validation
                         "levels": {"0": 47},  # Motion level indicator
-                        "motionHeatmap": "heatmap.png",  # Motion heatmap (UniFi may generate this)
-                        "motionSnapshot": "motionsnap.jpg",  # Motion snapshot (UniFi will request this via API)
+                        "motionSnapshot": "motionsnap.jpg",  # Also include motionSnapshot for compatibility
+                        "motionHeatmap": "",  # Empty heatmap for Smart Detect
                     }
                 )
 
             event_type = "EventSmartDetect" if object_type else "EventAnalytics"
             self.logger.info(f"Sending {event_type} (idx: {self._motion_event_id})")
+            if object_type:
+                self.logger.info(f"📋 EventSmartDetect payload: objectTypes={payload.get('objectTypes')}, eventType={payload.get('eventType')}, score={payload.get('score')}, snapshot={payload.get('smartDetectSnapshot')}, dimensions={payload.get('smartDetectSnapshotWidth')}x{payload.get('smartDetectSnapshotHeight')}")
             await self.send(
                 self.gen_response(
                     event_type,
@@ -256,11 +292,18 @@ class UnifiCamBase(metaclass=ABCMeta):
         motion_start_ts = self._motion_event_ts
         motion_object_type = self._motion_object_type
         if motion_start_ts:
+            # Calculate clockStream based on the oldest active stream's start time
+            # This ensures clockStream matches the video stream timestamps for proper playback
+            clock_stream_value = int(self.get_uptime() * 1000)
+            if self._stream_start_times:
+                oldest_stream_start = min(self._stream_start_times.values())
+                clock_stream_value = int((time.time() - oldest_stream_start) * 1000)
+            
             payload: dict[str, Any] = {
                 "clockBestMonotonic": int(self.get_uptime()),
                 "clockBestWall": int(round(motion_start_ts * 1000)),
                 "clockMonotonic": int(self.get_uptime()),
-                "clockStream": int(self.get_uptime()),
+                "clockStream": clock_stream_value,
                 "clockStreamRate": 1000,
                 "clockWall": int(round(time.time() * 1000)),
                 "edgeType": "stop",
@@ -286,14 +329,17 @@ class UnifiCamBase(metaclass=ABCMeta):
                     {
                         "objectTypes": [motion_object_type.value],
                         "edgeType": "leave",
-                        "zonesStatus": {"0": 48},
+                        "eventType": "smartDetect",  # Change eventType for Smart Detect events
+                        "zonesStatus": {"1": 48},  # Use zone "1" which matches ChangeSmartDetectSettings zones configuration
                         "smartDetectSnapshot": "motionsnap.jpg",
                         "smartDetectSnapshotWidth": snapshot_width,
                         "smartDetectSnapshotHeight": snapshot_height,
-                        # Keep motion data to help UniFi Protect validate the event
+                        "score": 85,  # Confidence score for Smart Detect (0-100)
+                        "detectionId": f"smartdetect_{self._motion_event_id}",  # Unique detection ID
+                        # Keep motion data for Smart Detect events - UniFi Protect may need it for validation
                         "levels": {"0": 49},  # Motion level indicator (higher for stop event)
-                        "motionHeatmap": "heatmap.png",  # Motion heatmap
-                        "motionSnapshot": "motionsnap.jpg",  # Motion snapshot
+                        "motionSnapshot": "motionsnap.jpg",  # Also include motionSnapshot for compatibility
+                        "motionHeatmap": "",  # Empty heatmap for Smart Detect
                     }
                 )
             self.logger.info(
@@ -744,6 +790,26 @@ class UnifiCamBase(metaclass=ABCMeta):
             },
         )
 
+    async def process_smart_detect_settings(self, msg: AVClientRequest) -> AVClientResponse:
+        """Process ChangeSmartDetectSettings - required for Smart Detect to work properly"""
+        payload = msg.get("payload", {})
+        self.logger.info(f"🔧 ChangeSmartDetectSettings FULL PAYLOAD:\n{json.dumps(payload, indent=2)}")
+        # Log zones configuration to understand what UniFi Protect expects
+        if "zones" in payload:
+            self.logger.info(f"🔧 Smart Detect Zones: {json.dumps(payload.get('zones', {}), indent=2)}")
+        if "zones" in payload and "1" in payload.get("zones", {}):
+            zone_obj_types = payload["zones"]["1"].get("objectTypes", [])
+            if zone_obj_types:
+                self.logger.info(f"🔧 Expected objectTypes in zone: {zone_obj_types}")
+        
+        # Return empty response like other settings functions
+        # UniFi Protect just needs an acknowledgment
+        return self.gen_response(
+            "ChangeSmartDetectSettings",
+            msg["messageId"],
+            {},
+        )
+
     async def process_osd_settings(self, msg: AVClientRequest) -> AVClientResponse:
         return self.gen_response(
             "ChangeOsdSettings",
@@ -894,7 +960,15 @@ class UnifiCamBase(metaclass=ABCMeta):
         self, msg: AVClientRequest
     ) -> Optional[AVClientResponse]:
         snapshot_type = msg["payload"]["what"]
-        if snapshot_type in ["motionSnapshot", "smartDetectZoneSnapshot"]:
+        event_id = msg.get('payload', {}).get('eventId', 'unknown')
+        self.logger.info(f"📸 Snapshot request: type={snapshot_type}, eventId={event_id}")
+        # Handle Smart Detect snapshot requests
+        if snapshot_type in ["motionSnapshot", "smartDetectZoneSnapshot", "smartDetectSnapshot"]:
+            path = self._motion_snapshot
+        elif snapshot_type == "snapshot" and self._motion_snapshot and self._motion_snapshot.exists():
+            # For generic "snapshot" requests, prefer using the motion snapshot if available
+            # This ensures the snapshot matches the event that triggered it
+            self.logger.info(f"✅ Using motion snapshot for generic snapshot request (eventId: {event_id})")
             path = self._motion_snapshot
         else:
             path = await self.get_snapshot()
@@ -917,13 +991,26 @@ class UnifiCamBase(metaclass=ABCMeta):
                     self.logger.error(f"❌ Failed to upload snapshot {snapshot_type}: {e}")
         else:
             # If snapshot is not ready, try to generate it on the fly
-            if snapshot_type in ["motionSnapshot", "smartDetectZoneSnapshot"]:
+            if snapshot_type in ["motionSnapshot", "smartDetectZoneSnapshot", "smartDetectSnapshot"]:
                 self.logger.warning(
                     f"⚠️  Snapshot file {path} is not ready yet for {snapshot_type}, generating on-demand..."
                 )
                 try:
-                    path = await self.get_snapshot()
-                    if path and path.exists():
+                    # Try to get snapshot with retry (fallback HTTP/ONVIF will be used automatically)
+                    path = None
+                    for attempt in range(3):
+                        try:
+                            path = await self.get_snapshot()
+                            if path and path.exists() and path.stat().st_size > 0:
+                                self.logger.info(f"✅ Generated snapshot on-demand (attempt {attempt + 1})")
+                                break
+                            await asyncio.sleep(0.3)  # Reduced wait time for faster retry
+                        except Exception as e:
+                            self.logger.debug(f"Snapshot attempt {attempt + 1} failed: {e}")
+                            if attempt < 2:
+                                await asyncio.sleep(0.3)
+                    
+                    if path and path.exists() and path.stat().st_size > 0:
                         async with aiohttp.ClientSession() as session:
                             files = {"payload": open(path, "rb")}
                             files.update(msg["payload"].get("formFields", {}))
@@ -932,15 +1019,15 @@ class UnifiCamBase(metaclass=ABCMeta):
                                 data=files,
                                 ssl=self._ssl_context,
                             )
-                            self.logger.info(f"✅ Uploaded on-demand {snapshot_type} from {path}")
+                            self.logger.info(f"✅ Uploaded on-demand {snapshot_type} from {path} (size: {path.stat().st_size} bytes)")
                     else:
-                        self.logger.error(f"❌ Failed to generate snapshot for {snapshot_type}")
+                        self.logger.error(f"❌ Failed to generate valid snapshot for {snapshot_type} after 3 retries")
                 except Exception as e:
                     self.logger.error(f"❌ Failed to generate/upload snapshot for {snapshot_type}: {e}")
             else:
                 self.logger.warning(
                     f"⚠️  Snapshot file {path} is not ready yet for {snapshot_type}, skipping upload"
-            )
+                )
 
         if msg["responseExpected"]:
             return self.gen_response("GetRequest", response_to=msg["messageId"])
@@ -975,9 +1062,19 @@ class UnifiCamBase(metaclass=ABCMeta):
         return time.time() - self._init_time
 
     async def send(self, msg: AVClientRequest) -> None:
-        self.logger.debug(f"Sending: {msg}")
         ws = self._session
         if ws:
+            # Log sent WebSocket messages for debugging (especially Smart Detect events)
+            fn = msg.get("functionName", "unknown")
+            if fn in ["EventSmartDetect", "EventAnalytics"]:
+                # Log Smart Detect events at INFO level with full payload
+                payload_str = json.dumps(msg.get("payload", {}), indent=2)
+                self.logger.info(f"🟢 WSS Sending: {fn}\n{payload_str}")
+            elif fn in ["GetRequest", "ChangeSmartDetectSettings"]:
+                # Log other important messages at DEBUG level
+                self.logger.debug(f"🟢 WSS Sending: {fn} - {json.dumps(msg, indent=2)[:500]}")
+            else:
+                self.logger.debug(f"🟢 WSS Sending: {fn}")
             await ws.send(json.dumps(msg).encode())
 
     async def process(self, msg: bytes) -> bool:
@@ -1032,9 +1129,7 @@ class UnifiCamBase(metaclass=ABCMeta):
                 "UpdateUsernamePassword", response_to=m["messageId"]
             )
         elif fn == "ChangeSmartDetectSettings":
-            res = self.gen_response(
-                "ChangeSmartDetectSettings", response_to=m["messageId"]
-            )
+            res = await self.process_smart_detect_settings(m)
         elif fn == "AudioAgentChangeTuning":
             # Respond to audio tuning requests to ensure microphone is recognized as enabled
             res = self.gen_response(
@@ -1099,11 +1194,16 @@ class UnifiCamBase(metaclass=ABCMeta):
             self._ffmpeg_handles[stream_index] = subprocess.Popen(
                 cmd, stdout=subprocess.DEVNULL, shell=True
             )
+            # Track when this stream started for clockStream calculation
+            self._stream_start_times[stream_index] = time.time()
 
     def stop_video_stream(self, stream_index: str):
         if stream_index in self._ffmpeg_handles:
             self.logger.info(f"Stopping stream {stream_index}")
             self._ffmpeg_handles[stream_index].kill()
+            # Remove stream start time tracking
+            if stream_index in self._stream_start_times:
+                del self._stream_start_times[stream_index]
 
     async def close(self):
         self.logger.info("Cleaning up instance")
