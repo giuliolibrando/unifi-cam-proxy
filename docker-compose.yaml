@@ -58,6 +58,7 @@ services:
       - CAMERA_IP=192.168.31.18
       - CAMERA_MAC=02:42:ac:11:00:18
       - CAMERA_NAME=Tapo Camera 18
+      - CAMERA_ID=694e719002607603e40476cf
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
@@ -85,6 +86,7 @@ services:
       - CAMERA_IP=192.168.31.13
       - CAMERA_MAC=02:42:ac:11:00:13
       - CAMERA_NAME=Tapo Camera 13
+      - CAMERA_ID=694e718700077603e40474b3
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
@@ -112,6 +114,7 @@ services:
       - CAMERA_IP=192.168.31.15
       - CAMERA_MAC=02:42:ac:11:00:15
       - CAMERA_NAME=Tapo Camera 15
+      - CAMERA_ID=694e718700957603e40474b7
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
@@ -139,6 +142,7 @@ services:
       - CAMERA_IP=192.168.31.17
       - CAMERA_MAC=02:42:ac:11:00:17
       - CAMERA_NAME=Tapo Camera 17
+      - CAMERA_ID=694e7187002a7603e40474b4
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
@@ -166,6 +170,7 @@ services:
       - CAMERA_IP=192.168.31.16
       - CAMERA_MAC=02:42:ac:11:00:16
       - CAMERA_NAME=Tapo Camera 16
+      - CAMERA_ID=694e718700657603e40474b6
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
@@ -193,6 +198,7 @@ services:
       - CAMERA_IP=192.168.31.10
       - CAMERA_MAC=02:42:ac:11:00:10
       - CAMERA_NAME=Tapo C500
+      - CAMERA_ID=694e6e3400d57603e4045e35
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
@@ -220,6 +226,7 @@ services:
       - CAMERA_IP=192.168.31.11
       - CAMERA_MAC=02:42:ac:11:00:11
       - CAMERA_NAME=Yi Camera 11
+      - CAMERA_ID=694fbe3d03c67603e40f15e9
       - CAMERA_USERNAME=${YI_USERNAME}
       - CAMERA_PASSWORD=${YI_PASSWORD}
       - TZ=Europe/Rome
@@ -246,6 +253,7 @@ services:
       - CAMERA_IP=192.168.31.12
       - CAMERA_MAC=02:42:ac:11:00:12
       - CAMERA_NAME=Yi Camera 12
+      - CAMERA_ID=694fbf9300937603e40f26ab
       - CAMERA_USERNAME=${YI_USERNAME}
       - CAMERA_PASSWORD=${YI_PASSWORD}
       - TZ=Europe/Rome

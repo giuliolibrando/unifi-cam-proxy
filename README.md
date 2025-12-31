@@ -15,6 +15,29 @@ Things that work:
 * Motion detection with certain cameras
 * Smart Detections using [Frigate](https://github.com/blakeblackshear/frigate)
 
+## Camera ID Configuration
+
+For Smart Detect events to work properly with newer UniFi Protect firmware versions, you need to configure the camera ID for each camera in your `docker-compose.yaml` file.
+
+### How to retrieve Camera IDs
+
+1. Access your UniFi Protect API endpoint:
+   ```
+   https://<NVR_IP>/proxy/protect/api/bootstrap
+   ```
+
+2. In the JSON response, find the `cameras` array and locate your camera by MAC address.
+
+3. Copy the `id` field (UUID) for each camera.
+
+4. Add the `CAMERA_ID` environment variable to each camera service in `docker-compose.yaml`:
+   ```yaml
+   environment:
+     - CAMERA_ID=694e718700657603e40474b6
+   ```
+
+**Note:** The camera ID is optional but recommended for better Smart Detect event compatibility with UniFi Protect firmware 5.1.217+.
+
 ## Documentation
 
 View the documentation at <https://unifi-cam-proxy.com>

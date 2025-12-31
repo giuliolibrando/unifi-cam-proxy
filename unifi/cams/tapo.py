@@ -204,37 +204,36 @@ class TapoCam(UnifiCamBase):
             # Fallback: prova HTTP snapshot direttamente dalla telecamera (più veloce quando go2rtc non funziona)
             if not snapshot_success:
                 self.logger.info(f"🔄 Trying HTTP snapshot fallback for {self.args.ip}...")
-                http_urls = [
-                    f"http://{self.args.username}:{self.args.password}@{self.args.ip}/streaming/snapshot.jpg",
-                    f"http://{self.args.username}:{self.args.password}@{self.args.ip}/snapshot.jpg",
-                ]
-                
-                for url in http_urls:
-                    try:
-                        if await self.fetch_to_file(url, img_file):
-                            if img_file.exists() and img_file.stat().st_size > 0:
-                                self.logger.info(f"✅ Snapshot captured via HTTP from {self.args.ip}")
-                                snapshot_success = True
-                                break
-                    except Exception as e:
-                        self.logger.debug(f"HTTP snapshot URL {url} failed: {e}")
-                        continue
-                
-                # Fallback finale: ONVIF snapshot
-                if not snapshot_success and self.media and len(self.profiles) > 0:
-                    try:
-                        self.logger.info(f"🔄 Trying ONVIF snapshot fallback for {self.args.ip}...")
-                        profile = self.profiles[0]
-                        snapshot_uri = await self.media.GetSnapshotUri({
-                            'ProfileToken': profile.token
-                        })
-                        snapshot_uri = snapshot_uri.Uri
-                        if await self.fetch_to_file(snapshot_uri, img_file):
-                            if img_file.exists() and img_file.stat().st_size > 0:
-                                self.logger.info(f"✅ Snapshot captured via ONVIF from {self.args.ip}")
-                                snapshot_success = True
-                    except Exception as e:
-                        self.logger.warning(f"⚠️  Failed to get ONVIF snapshot: {e}")
+            http_urls = [
+                f"http://{self.args.username}:{self.args.password}@{self.args.ip}/streaming/snapshot.jpg",
+                f"http://{self.args.username}:{self.args.password}@{self.args.ip}/snapshot.jpg",
+            ]
+            
+            for url in http_urls:
+                try:
+                    if await self.fetch_to_file(url, img_file):
+                        if img_file.exists() and img_file.stat().st_size > 0:
+                            self.logger.info(f"✅ Snapshot captured via HTTP from {self.args.ip}")
+                            snapshot_success = True
+                            break
+                except Exception as e:
+                    self.logger.debug(f"HTTP snapshot URL {url} failed: {e}")
+            
+            # Fallback finale: ONVIF snapshot
+            if not snapshot_success and self.media and len(self.profiles) > 0:
+                try:
+                    self.logger.info(f"🔄 Trying ONVIF snapshot fallback for {self.args.ip}...")
+                    profile = self.profiles[0]
+                    snapshot_uri = await self.media.GetSnapshotUri({
+                        'ProfileToken': profile.token
+                    })
+                    snapshot_uri = snapshot_uri.Uri
+                    if await self.fetch_to_file(snapshot_uri, img_file):
+                        if img_file.exists() and img_file.stat().st_size > 0:
+                            self.logger.info(f"✅ Snapshot captured via ONVIF from {self.args.ip}")
+                            snapshot_success = True
+                except Exception as e:
+                    self.logger.warning(f"⚠️  Failed to get ONVIF snapshot: {e}")
             
             if not snapshot_success:
                 self.logger.error(f"❌ All snapshot methods failed for {self.args.ip}")

@@ -105,6 +105,10 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._motion_object_type: Optional[SmartDetectObjectType] = None
         self._ffmpeg_handles: dict[str, subprocess.Popen] = {}
         self._stream_start_times: dict[str, float] = {}  # Track when each stream started for clockStream calculation
+        # Camera ID from environment variable (set in docker-compose) or None
+        self._camera_id: Optional[str] = os.getenv("CAMERA_ID", None)
+        if self._camera_id:
+            self.logger.info(f"📷 Camera ID loaded from environment: {self._camera_id}")
 
         # Set up ssl context for requests
         self._ssl_context = ssl.create_default_context()
@@ -146,8 +150,10 @@ class UnifiCamBase(metaclass=ABCMeta):
                 try:
                     msg_dict = json.loads(msg)
                     fn = msg_dict.get("functionName", "unknown")
+                    payload = msg_dict.get("payload", {})
+                    
                     # Log ALL messages at INFO level to understand what UniFi Protect expects
-                    payload_str = json.dumps(msg_dict.get("payload", {}), indent=2)
+                    payload_str = json.dumps(payload, indent=2)
                     self.logger.info(f"🔵 WSS Received: {fn}\n{payload_str}")
                 except Exception as e:
                     self.logger.debug(f"🔵 WSS Received: (non-JSON message): {e}")
@@ -256,6 +262,14 @@ class UnifiCamBase(metaclass=ABCMeta):
                     snapshot_width = width
                     snapshot_height = height
                 
+                # Calculate bounding box (normalized coordinates 0.0-1.0)
+                # Default: center of image with reasonable size (30% width, 50% height)
+                # These are normalized coordinates as required by UniFi Protect
+                bbox_top = 0.25  # Top position (25% from top)
+                bbox_left = 0.35  # Left position (35% from left)
+                bbox_width = 0.30  # Width (30% of image width)
+                bbox_height = 0.50  # Height (50% of image height)
+                
                 payload.update(
                     {
                         "objectTypes": [object_type.value],
@@ -267,6 +281,24 @@ class UnifiCamBase(metaclass=ABCMeta):
                         "smartDetectSnapshotHeight": snapshot_height,
                         "score": 85,  # Confidence score for Smart Detect (0-100)
                         "detectionId": f"smartdetect_{self._motion_event_id}",  # Unique detection ID
+                        # Smart Detection Types array (required by UniFi Protect for newer firmware versions)
+                        "smartDetectionTypes": [object_type.value],
+                        # Smart Detection Values with bounding box (required by UniFi Protect)
+                        "smartDetectionValues": [
+                            {
+                                "type": object_type.value,
+                                "confidence": 85,  # Confidence score (0-100)
+                                "boundingBox": {
+                                    "top": bbox_top,
+                                    "left": bbox_left,
+                                    "width": bbox_width,
+                                    "height": bbox_height
+                                },
+                                "smartDetectZoneIds": [1]  # Zone ID matching smartDetectZones configuration
+                            }
+                        ],
+                        # Include camera ID if available (recommended by UniFi Protect for newer firmware)
+                        **({"camera": self._camera_id} if self._camera_id else {}),
                         # Keep motion data for Smart Detect events - UniFi Protect may need it for validation
                         "levels": {"0": 47},  # Motion level indicator
                         "motionSnapshot": "motionsnap.jpg",  # Also include motionSnapshot for compatibility
@@ -277,7 +309,13 @@ class UnifiCamBase(metaclass=ABCMeta):
             event_type = "EventSmartDetect" if object_type else "EventAnalytics"
             self.logger.info(f"Sending {event_type} (idx: {self._motion_event_id})")
             if object_type:
-                self.logger.info(f"📋 EventSmartDetect payload: objectTypes={payload.get('objectTypes')}, eventType={payload.get('eventType')}, score={payload.get('score')}, snapshot={payload.get('smartDetectSnapshot')}, dimensions={payload.get('smartDetectSnapshotWidth')}x{payload.get('smartDetectSnapshotHeight')}")
+                smart_detection_values = payload.get('smartDetectionValues', [])
+                bbox_info = ""
+                if smart_detection_values and len(smart_detection_values) > 0:
+                    bbox = smart_detection_values[0].get('boundingBox', {})
+                    bbox_info = f", bbox=({bbox.get('left', 0):.2f},{bbox.get('top', 0):.2f},{bbox.get('width', 0):.2f},{bbox.get('height', 0):.2f})"
+                smart_detection_types = payload.get('smartDetectionTypes', [])
+                self.logger.info(f"📋 EventSmartDetect payload: objectTypes={payload.get('objectTypes')}, smartDetectionTypes={smart_detection_types}, eventType={payload.get('eventType')}, score={payload.get('score')}, snapshot={payload.get('smartDetectSnapshot')}, dimensions={payload.get('smartDetectSnapshotWidth')}x{payload.get('smartDetectSnapshotHeight')}{bbox_info}, zoneIds={smart_detection_values[0].get('smartDetectZoneIds', []) if smart_detection_values else []}")
             await self.send(
                 self.gen_response(
                     event_type,
@@ -325,6 +363,14 @@ class UnifiCamBase(metaclass=ABCMeta):
                 # For Smart Detect events, we MUST include motion data in the payload
                 # UniFi Protect is very strict: if it receives a Smart event but doesn't see
                 # pixel changes (motion) that it processes itself, it sometimes discards the smart label.
+                
+                # Calculate bounding box (normalized coordinates 0.0-1.0)
+                # Default: center of image with reasonable size (30% width, 50% height)
+                bbox_top = 0.25  # Top position (25% from top)
+                bbox_left = 0.35  # Left position (35% from left)
+                bbox_width = 0.30  # Width (30% of image width)
+                bbox_height = 0.50  # Height (50% of image height)
+                
                 payload.update(
                     {
                         "objectTypes": [motion_object_type.value],
@@ -336,6 +382,24 @@ class UnifiCamBase(metaclass=ABCMeta):
                         "smartDetectSnapshotHeight": snapshot_height,
                         "score": 85,  # Confidence score for Smart Detect (0-100)
                         "detectionId": f"smartdetect_{self._motion_event_id}",  # Unique detection ID
+                        # Smart Detection Types array (required by UniFi Protect for newer firmware versions)
+                        "smartDetectionTypes": [motion_object_type.value],
+                        # Smart Detection Values with bounding box (required by UniFi Protect)
+                        "smartDetectionValues": [
+                            {
+                                "type": motion_object_type.value,
+                                "confidence": 85,  # Confidence score (0-100)
+                                "boundingBox": {
+                                    "top": bbox_top,
+                                    "left": bbox_left,
+                                    "width": bbox_width,
+                                    "height": bbox_height
+                                },
+                                "smartDetectZoneIds": [1]  # Zone ID matching smartDetectZones configuration
+                            }
+                        ],
+                        # Include camera ID if available (recommended by UniFi Protect for newer firmware)
+                        **({"camera": self._camera_id} if self._camera_id else {}),
                         # Keep motion data for Smart Detect events - UniFi Protect may need it for validation
                         "levels": {"0": 49},  # Motion level indicator (higher for stop event)
                         "motionSnapshot": "motionsnap.jpg",  # Also include motionSnapshot for compatibility
