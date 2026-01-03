@@ -34,34 +34,7 @@ services:
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
-    command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
-
-  # Camera 2: Tapo su 192.168.31.18
-  camera_tapo_2:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_2
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.18
-      - CAMERA_MAC=02:42:ac:11:00:18
-      - CAMERA_NAME=Tapo Camera 18
-      - CAMERA_ID=694e719002607603e40476cf
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+      - EVENTS_ENABLED=${EVENTS_ENABLED:-true}
     command: >-
       sh -c "
       sleep 5 &&
@@ -90,34 +63,7 @@ services:
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
-    command: >-
-      sh -c "
-      sleep 5 &&
-      unifi-cam-proxy -H $${PROTECT_HOST} --mac $${CAMERA_MAC}
-      --model 'UVC G4 Pro' -i $${CAMERA_IP} -c /client.pem -t $${PROTECT_TOKEN}
-      --name \"$${CAMERA_NAME}\" tapo -u $${CAMERA_USERNAME} -p $${CAMERA_PASSWORD}
-      "
-
-  # Camera 4: Tapo su 192.168.31.15
-  camera_tapo_4:
-    image: unifi-cam-proxy_camera_tapo:latest
-    container_name: camera_tapo_4
-    restart: always
-    network_mode: host
-    depends_on:
-      - go2rtc
-    volumes: 
-      - "./client.pem:/client.pem:ro"
-    environment:
-      - PROTECT_HOST=${PROTECT_HOST}
-      - PROTECT_TOKEN=${PROTECT_TOKEN}
-      - CAMERA_IP=192.168.31.15
-      - CAMERA_MAC=02:42:ac:11:00:15
-      - CAMERA_NAME=Tapo Camera 15
-      - CAMERA_ID=694e718700957603e40474b7
-      - CAMERA_USERNAME=${TAPO_USERNAME}
-      - CAMERA_PASSWORD=${TAPO_PASSWORD}
-      - TZ=Europe/Rome
+      - EVENTS_ENABLED=${EVENTS_ENABLED:-true}
     command: >-
       sh -c "
       sleep 5 &&
@@ -146,6 +92,7 @@ services:
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
+      - EVENTS_ENABLED=false
     command: >-
       sh -c "
       sleep 5 &&
@@ -174,6 +121,7 @@ services:
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
+      - EVENTS_ENABLED=${EVENTS_ENABLED:-true}
     command: >-
       sh -c "
       sleep 5 &&
@@ -202,6 +150,7 @@ services:
       - CAMERA_USERNAME=${TAPO_USERNAME}
       - CAMERA_PASSWORD=${TAPO_PASSWORD}
       - TZ=Europe/Rome
+      - EVENTS_ENABLED=${EVENTS_ENABLED:-true}
     command: >-
       sh -c "
       sleep 5 &&
@@ -230,6 +179,7 @@ services:
       - CAMERA_USERNAME=${YI_USERNAME}
       - CAMERA_PASSWORD=${YI_PASSWORD}
       - TZ=Europe/Rome
+      - EVENTS_ENABLED=${EVENTS_ENABLED:-true}
     command: >-
       sh -c "
       sleep 5 &&
@@ -257,6 +207,7 @@ services:
       - CAMERA_USERNAME=${YI_USERNAME}
       - CAMERA_PASSWORD=${YI_PASSWORD}
       - TZ=Europe/Rome
+      - EVENTS_ENABLED=${EVENTS_ENABLED:-true}
     command: >-
       sh -c "
       sleep 5 &&

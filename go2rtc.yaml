@@ -5,27 +5,17 @@
 
 streams:
   # ========= Telecamera 1: Tapo C220 (192.168.31.19) =========
-  # Tutti gli stream puntano allo stream SD (stream2)
-  tapo_192_168_31_19_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_19_sd  # Usa lo stream SD
+  # Tutti gli stream puntano allo stream SD (stream2)#
+#  tapo_192_168_31_19_hd_1080p:
+#    - rtsp://127.0.0.1:8554/tapo_192_168_31_19_sd  # Usa lo stream SD
   
-  tapo_192_168_31_19_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_19_sd  # Usa lo stream SD
+#  tapo_192_168_31_19_hd_720p:
+#    - rtsp://127.0.0.1:8554/tapo_192_168_31_19_sd  # Usa lo stream SD
   
-  tapo_192_168_31_19_sd:
+#  tapo_192_168_31_19_sd:
     # Usa solo FFmpeg per evitare doppia connessione (riduce traffico del 50%)
     # UDP è più leggero di TCP per ridurre airtime
-    - "ffmpeg:rtsp://username:password@192.168.31.19:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
-
-  # ========= Telecamera 2: Tapo (192.168.31.18) =========
-  tapo_192_168_31_18_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd
-  
-  tapo_192_168_31_18_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_18_sd
-  
-  tapo_192_168_31_18_sd:
-    - "ffmpeg:rtsp://username:password@192.168.31.18:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+#    - "ffmpeg:rtsp://username:password@192.168.31.19:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac"
 
   # ========= Telecamera 3: Tapo (192.168.31.13) =========
   tapo_192_168_31_13_hd_1080p:
@@ -35,17 +25,7 @@ streams:
     - rtsp://127.0.0.1:8554/tapo_192_168_31_13_sd
   
   tapo_192_168_31_13_sd:
-    - "ffmpeg:rtsp://username:password@192.168.31.13:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
-
-  # ========= Telecamera 4: Tapo (192.168.31.15) =========
-  tapo_192_168_31_15_hd_1080p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd
-  
-  tapo_192_168_31_15_hd_720p:
-    - rtsp://127.0.0.1:8554/tapo_192_168_31_15_sd
-  
-  tapo_192_168_31_15_sd:
-    - "ffmpeg:rtsp://username:password@192.168.31.15:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+    - "ffmpeg:rtsp://username:password@192.168.31.13:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac"
 
   # ========= Telecamera 5: Tapo (192.168.31.17) =========
   tapo_192_168_31_17_hd_1080p:
@@ -55,7 +35,7 @@ streams:
     - rtsp://127.0.0.1:8554/tapo_192_168_31_17_sd
   
   tapo_192_168_31_17_sd:
-    - "ffmpeg:rtsp://username:password@192.168.31.17:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+    - "ffmpeg:rtsp://username:password@192.168.31.17:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac"
 
   # ========= Telecamera 6: Tapo (192.168.31.16) =========
   tapo_192_168_31_16_hd_1080p:
@@ -65,7 +45,7 @@ streams:
     - rtsp://127.0.0.1:8554/tapo_192_168_31_16_sd
   
   tapo_192_168_31_16_sd:
-    - "ffmpeg:rtsp://username:password@192.168.31.16:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+    - "ffmpeg:rtsp://username:password@192.168.31.16:554/stream2#rtsp_transport=udp#timeout=60s#video=copy#audio=aac"
 
   # ========= Telecamera 7: Tapo C500 (192.168.31.10) =========
   tapo_192_168_31_10_hd_1080p:
@@ -76,7 +56,7 @@ streams:
   
   tapo_192_168_31_10_sd:
     - rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=udp#timeout=30s
-    - "ffmpeg:rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=udp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+    - "ffmpeg:rtsp://username:password@192.168.31.10:554/stream2#rtsp_transport=udp#timeout=30s#video=copy#audio=aac"
 
   # ========= Telecamera Yi 1 (192.168.31.11) =========
   # Tutti gli stream puntano allo stream SD (ch0_0.h264)
@@ -88,7 +68,7 @@ streams:
   
   yi_192_168_31_11_sd:
     - rtsp://aaa:aaa@192.168.31.11/ch0_1.h264#rtsp_transport=udp#timeout=30s
-    - "ffmpeg:rtsp://aaa:aaa@192.168.31.11/ch0_1.h264#rtsp_transport=udp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+    - "ffmpeg:rtsp://aaa:aaa@192.168.31.11/ch0_1.h264#rtsp_transport=udp#timeout=30s#video=copy#audio=aac"
 
   # ========= Telecamera Yi 2 (192.168.31.12) =========
   # Tutti gli stream puntano allo stream SD (ch0_0.h264)
@@ -100,4 +80,4 @@ streams:
   
   yi_192_168_31_12_sd:
     - rtsp://aaa:aaa@192.168.31.12/ch0_1.h264#rtsp_transport=udp#timeout=30s
-    - "ffmpeg:rtsp://aaa:aaa@192.168.31.12/ch0_1.h264#rtsp_transport=udp#timeout=30s#video=copy#audio=aac#audio=ar=32000#audio=ac=1#audio=b=32k"
+    - "ffmpeg:rtsp://aaa:aaa@192.168.31.12/ch0_1.h264#rtsp_transport=udp#timeout=30s#video=copy#audio=aac"

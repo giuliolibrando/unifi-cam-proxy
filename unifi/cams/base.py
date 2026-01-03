@@ -109,6 +109,12 @@ class UnifiCamBase(metaclass=ABCMeta):
         self._camera_id: Optional[str] = os.getenv("CAMERA_ID", None)
         if self._camera_id:
             self.logger.info(f"📷 Camera ID loaded from environment: {self._camera_id}")
+        
+        # Events enabled/disabled from environment variable
+        events_enabled_str = os.getenv("EVENTS_ENABLED", "true").lower()
+        self._events_enabled = events_enabled_str not in ("false", "0", "no", "off")
+        if not self._events_enabled:
+            self.logger.info("🔕 Eventi disabilitati: gli eventi verranno loggati ma non inviati a UniFi Protect")
 
         # Set up ssl context for requests
         self._ssl_context = ssl.create_default_context()
@@ -307,7 +313,8 @@ class UnifiCamBase(metaclass=ABCMeta):
                 )
 
             event_type = "EventSmartDetect" if object_type else "EventAnalytics"
-            self.logger.info(f"Sending {event_type} (idx: {self._motion_event_id})")
+            event_description = f"{object_type.value} detected" if object_type else "motion detected"
+            
             if object_type:
                 smart_detection_values = payload.get('smartDetectionValues', [])
                 bbox_info = ""
@@ -316,12 +323,22 @@ class UnifiCamBase(metaclass=ABCMeta):
                     bbox_info = f", bbox=({bbox.get('left', 0):.2f},{bbox.get('top', 0):.2f},{bbox.get('width', 0):.2f},{bbox.get('height', 0):.2f})"
                 smart_detection_types = payload.get('smartDetectionTypes', [])
                 self.logger.info(f"📋 EventSmartDetect payload: objectTypes={payload.get('objectTypes')}, smartDetectionTypes={smart_detection_types}, eventType={payload.get('eventType')}, score={payload.get('score')}, snapshot={payload.get('smartDetectSnapshot')}, dimensions={payload.get('smartDetectSnapshotWidth')}x{payload.get('smartDetectSnapshotHeight')}{bbox_info}, zoneIds={smart_detection_values[0].get('smartDetectZoneIds', []) if smart_detection_values else []}")
-            await self.send(
-                self.gen_response(
-                    event_type,
-                    payload=payload,
-                ),
-            )
+            
+            # Log event detection
+            self.logger.info(f"🔔 Evento rilevato: {event_description} (idx: {self._motion_event_id})")
+            
+            # Send event only if events are enabled
+            if self._events_enabled:
+                self.logger.info(f"📤 Invio {event_type} a UniFi Protect (idx: {self._motion_event_id})")
+                await self.send(
+                    self.gen_response(
+                        event_type,
+                        payload=payload,
+                    ),
+                )
+            else:
+                self.logger.info(f"🔕 Eventi disabilitati: {event_type} NON inviato a UniFi Protect (idx: {self._motion_event_id})")
+            
             self._motion_event_ts = time.time()
             self._motion_object_type = object_type
             # Snapshot already captured before sending event (above), no need to capture again
@@ -406,18 +423,24 @@ class UnifiCamBase(metaclass=ABCMeta):
                         "motionHeatmap": "",  # Empty heatmap for Smart Detect
                     }
                 )
-            self.logger.info(
-                f"Triggering motion stop (idx: {self._motion_event_id})"
-                + f" for {motion_object_type.value}"
-                if motion_object_type
-                else ""
-            )
-            await self.send(
-                self.gen_response(
-                    "EventSmartDetect" if motion_object_type else "EventAnalytics",
-                    payload=payload,
-                ),
-            )
+            event_type = "EventSmartDetect" if motion_object_type else "EventAnalytics"
+            event_description = f"{motion_object_type.value} ended" if motion_object_type else "motion ended"
+            
+            # Log event detection
+            self.logger.info(f"🔔 Evento rilevato: {event_description} (idx: {self._motion_event_id})")
+            
+            # Send event only if events are enabled
+            if self._events_enabled:
+                self.logger.info(f"📤 Invio {event_type} a UniFi Protect (idx: {self._motion_event_id})")
+                await self.send(
+                    self.gen_response(
+                        event_type,
+                        payload=payload,
+                    ),
+                )
+            else:
+                self.logger.info(f"🔕 Eventi disabilitati: {event_type} NON inviato a UniFi Protect (idx: {self._motion_event_id})")
+            
             self._motion_event_id += 1
             self._motion_event_ts = None
             self._motion_object_type = None
